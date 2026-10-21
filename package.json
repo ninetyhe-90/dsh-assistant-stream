@@ -1,0 +1,16 @@
+{
+  "name": "dsh-assistant-stream",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Export DeepSeek Harness assistant streaming frames as NDJSON.",
+  "type": "module",
+  "exports": "./src/assistant-stream.mjs",
+  "files": ["src"],
+  "engines": { "node": ">=20.11" },
+  "keywords": ["deepseek-harness", "dsh", "plugin", "streaming", "ndjson"],
+  "license": "MIT",
+  "scripts": {
+    "check": "node --check src/assistant-stream.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}
