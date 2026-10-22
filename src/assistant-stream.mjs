@@ -17,20 +17,12 @@ export function apply(ctx, config = {}) {
   })
   const attempts = new WeakMap()
   const turns = new WeakMap()
-  const readTurnId = config.readTurnId ?? (() => {
-    const id = process.env.DSH_TURN_ID
-    if (id === undefined || id.trim() === '') {
-      throw new Error('turn id missing: pass readTurnId or set DSH_TURN_ID')
-    }
-    return id.trim()
-  })
+  const readTurnId = config.readTurnId ?? (() => process.env.DSH_TURN_ID?.trim() || undefined)
 
   function emit(agent, state, payload) {
     let turn = turns.get(agent.session)
     if (turn === undefined) {
-      const requestId = readTurnId()
-      if (!requestId) throw new Error('turn id missing')
-      turn = { requestId, turn: state.turn, nextFence: 0 }
+      turn = { requestId: readTurnId() || agent.session.id, turn: state.turn, nextFence: 0 }
       turns.set(agent.session, turn)
     }
     write(PREFIX + JSON.stringify({
@@ -106,7 +98,7 @@ export function apply(ctx, config = {}) {
       op: 'commit', messageId: event.data.message.id, blocks,
       interrupted: event.data.interrupted === true,
     })
-    if (event.data.usage !== undefined && session.requestContext()?.contextWindow !== undefined && ctx.get('tokenMeter') !== undefined) {
+    if (event.data.usage !== undefined && session.requestContext?.()?.contextWindow !== undefined && ctx.get('tokenMeter') !== undefined) {
       fence('usage')
     }
   })

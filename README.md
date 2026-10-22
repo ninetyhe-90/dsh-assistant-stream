@@ -42,6 +42,22 @@ export default {
 
 Without `readTurnId`, the plugin reads `DSH_TURN_ID` and fails loudly when it is empty.
 
+## Install
+
+```sh
+dsh plugin --profile <name> add dsh-assistant-stream
+```
+
+The package ships a `cordis.patch.yml` bundle layer that inserts the plugin row. To install from a
+local checkout instead:
+
+```sh
+dsh plugin --profile <name> add /path/to/dsh-assistant-stream
+```
+
+Requires a DSH build that emits `agent/assistant-stream` and `session/event` (0.2.x). When neither
+`readTurnId` nor `DSH_TURN_ID` is provided, `requestId` falls back to the session id.
+
 ## Requirements
 
 - Node.js 20.11+

@@ -1,13 +1,32 @@
 {
   "name": "dsh-assistant-stream",
   "version": "0.1.0",
-  "private": true,
   "description": "Export DeepSeek Harness assistant streaming frames as NDJSON.",
   "type": "module",
-  "exports": "./src/assistant-stream.mjs",
-  "files": ["src"],
-  "engines": { "node": ">=20.11" },
-  "keywords": ["deepseek-harness", "dsh", "plugin", "streaming", "ndjson"],
+  "main": "./src/assistant-stream.mjs",
+  "exports": {
+    ".": "./src/assistant-stream.mjs"
+  },
+  "files": [
+    "src",
+    "cordis.patch.yml"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=20.11"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-bundle",
+    "plugin",
+    "streaming",
+    "ndjson"
+  ],
   "license": "MIT",
   "scripts": {
     "check": "node --check src/assistant-stream.mjs",
