@@ -39,7 +39,8 @@ export function apply(ctx, config = {}) {
   ctx.on('agent/assistant-stream', ({ agent, frame }) => {
     if (!exported(agent)) return
     if (frame.type === 'start') {
-      if (attempts.has(agent.session)) throw new Error('assistant stream started before previous attempt ended')
+      // An attempt may end without its terminal frame; replace it instead of rejecting
+      // the new one, so one broken stream cannot block later attempts.
       const state = { attemptId: frame.attemptId, seq: 0, turn: frame.turn, step: frame.step }
       attempts.set(agent.session, state)
       emit(agent, state, { op: 'start', turn: frame.turn, step: frame.step })
@@ -66,18 +67,21 @@ export function apply(ctx, config = {}) {
   ctx.on('session/event', (session, event) => {
     if (!exported({ session })) return
     if (event.type === 'turn/start') {
-      if (turns.has(session)) throw new Error('assistant stream previous turn not closed')
+      // A previous turn may close without turn/end; reset its state instead of rejecting.
+      turns.delete(session)
+      attempts.delete(session)
       emit({ session }, { attemptId: '', seq: 0, turn: event.data.turn }, { op: 'turn-start' })
       return
     }
     if (event.type === 'turn/end') {
       emit({ session }, { attemptId: '', seq: 0, turn: event.data.turn }, { op: 'turn-end' })
       turns.delete(session)
+      attempts.delete(session)
       return
     }
     function fence(key) {
       const turn = turns.get(session)
-      if (turn === undefined) throw new Error('assistant event outside turn')
+      if (turn === undefined) return
       emit({ session }, { attemptId: '', seq: 0, turn: turn.turn }, { op: 'event-fence', key, fence: turn.nextFence++ })
     }
     if (event.type === 'tool/call') {
