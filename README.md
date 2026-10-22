@@ -1,74 +1,120 @@
-# dsh-assistant-stream
+<div align="center">
+  <h1>dsh-assistant-stream</h1>
+  <p><strong>把 DeepSeek Harness 的流式输出导出成 NDJSON。</strong></p>
+  <p>为网关、桌面端与调试工具提供可实时消费的 assistant 流。</p>
 
-A small [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) plugin that mirrors
-assistant streaming activity to an NDJSON sink, so another process can consume tokens, block
-boundaries, commits, and turn fences as they happen.
+  <p>
+    <img src="https://img.shields.io/badge/node-%3E%3D20.11-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js 20.11+" />
+    <img src="https://img.shields.io/badge/DSH-0.2.x-4D6BFE?style=flat-square" alt="DSH 0.2.x" />
+    <img src="https://img.shields.io/badge/tests-7%20passed-brightgreen?style=flat-square" alt="7 tests passed" />
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT License" /></a>
+  </p>
 
-## What it emits
+  <p>简体中文 · <a href="README_EN.md">English</a></p>
+</div>
 
-One JSON object per line, prefixed with `ASSISTANT_STREAM_V1 `:
+> [!NOTE]
+> 这是一个 DSH bundle。`dsh plugin add` 即可安装，插件行由随包的 `cordis.patch.yml` 注入，无需手写 profile 配置。
 
-```text
-ASSISTANT_STREAM_V1 {"version":1,"sessionId":"s1","requestId":"r1","turn":1,"attemptId":"s1:1","seq":0,"op":"start","step":1}
+## 为什么做这个插件
+
+DeepSeek Harness 的 assistant 输出是事件流：文本与推理增量、块结束、消息提交、轮次边界、工具调用围栏。宿主内部可以直接订阅，但外部进程（网关、Web 前端、录制工具）拿不到稳定的消费格式。
+
+这个插件把这条事件流翻译成一行一个 JSON 的 NDJSON，写到你指定的 sink。外部进程只需要按行读取，就能实时重建一次回答的完整过程，并保证提交顺序与围栏顺序一致。
+
+```mermaid
+flowchart LR
+    A[DSH session] --> B[agent/assistant-stream 事件]
+    B --> C[dsh-assistant-stream]
+    C --> D[NDJSON sink]
+    D --> E[网关预览]
+    D --> F[Web 前端]
+    D --> G[录制与回放]
 ```
 
-| `op` | Meaning |
-|---|---|
-| `turn-start` / `turn-end` | Turn boundaries, emitted for the root session only |
-| `start` | A model attempt began; `seq` restarts at 0 per attempt |
-| `delta` | Incremental `text` or `reasoning` text |
-| `block` | A completed text or reasoning block |
-| `commit` | The committed assistant message for this attempt |
-| `event-fence` | Ordering marker for tool calls, tool results, and usage commits |
-| `end` | The attempt finished, with its outcome |
+## 核心能力
 
-Subagent sessions (`parentSession` or `origin: "subagent"`) are never exported.
+| 能力 | 使用体验 |
+| --- | --- |
+| 统一帧格式 | 每行一个 JSON 对象，固定前缀 `ASSISTANT_STREAM_V1 `，便于逐行切分 |
+| 完整时序 | `start`、`delta`、`block`、`commit`、`end` 覆盖一次尝试的完整生命周期 |
+| 轮次边界 | `turn-start` / `turn-end` 由会话事件驱动，外部可以按轮次聚合 |
+| 顺序围栏 | 工具调用、工具结果与用量提交各有一个递增 fence，便于对齐 |
+| 子代理隔离 | 子会话（`parentSession` 或 `origin: subagent`）不会写入 sink |
+| 自定义输出 | 默认写 stderr，也可以通过 `write` 交给内存、文件或 socket |
 
-## Usage
+## 帧类型
 
-```js
-import * as plugin from 'dsh-assistant-stream'
+| `op` | 含义 |
+| --- | --- |
+| `turn-start` / `turn-end` | 轮次开始与结束，仅导出根会话 |
+| `start` | 一次模型尝试开始，`seq` 归零 |
+| `delta` | `text` 或 `reasoning` 的增量文本 |
+| `block` | 一个文本或推理块结束 |
+| `commit` | 本次尝试提交的 assistant 消息 |
+| `event-fence` | 工具调用、工具结果、用量提交的顺序标记 |
+| `end` | 本次尝试结束，携带 `outcome` |
 
-export default {
-  name: plugin.name,
-  apply: (ctx) => plugin.apply(ctx, {
-    // Optional: resolve the request id for the current turn.
-    readTurnId: () => process.env.TURN_ID,
-    // Optional: capture frames yourself; defaults to process.stderr.
-    write: line => process.stdout.write(line),
-  }),
-}
-```
+## 安装
 
-Without `readTurnId`, the plugin reads `DSH_TURN_ID` and fails loudly when it is empty.
-
-## Install
+从 npm 安装：
 
 ```sh
 dsh plugin --profile <name> add dsh-assistant-stream
 ```
 
-The package ships a `cordis.patch.yml` bundle layer that inserts the plugin row. To install from a
-local checkout instead:
+从本地目录或 GitHub 安装：
 
 ```sh
 dsh plugin --profile <name> add /path/to/dsh-assistant-stream
+dsh plugin --profile <name> add github:ninetyhe-90/dsh-assistant-stream
 ```
 
-Requires a DSH build that emits `agent/assistant-stream` and `session/event` (0.2.x). When neither
-`readTurnId` nor `DSH_TURN_ID` is provided, `requestId` falls back to the session id.
+## 配置
 
-## Requirements
+| 字段 | 类型 | 默认 | 说明 |
+| --- | --- | --- | --- |
+| `readTurnId` | `() => string \| undefined` | 读取 `DSH_TURN_ID` | 返回当前轮次的请求 id |
+| `write` | `(line: string) => void` | 写 stderr | 接收每一行 NDJSON |
+
+`readTurnId` 缺失或返回空时，`requestId` 回落到 `session.id`，不会中断会话。
+
+```yaml
+- insert:
+    - id: assistant-stream
+      name: dsh-assistant-stream
+```
+
+## 兼容性
 
 - Node.js 20.11+
+- DeepSeek Harness 0.2.x：依赖 `agent/assistant-stream` 与 `session/event` 事件
+- 旧版本缺少 `session.requestContext` 时，插件会跳过用量围栏，其余帧不受影响
 
-## Test
+## 项目结构
+
+```text
+src/assistant-stream.mjs    插件入口与帧导出逻辑
+test/assistant-stream.test.mjs  行为测试（node:test）
+cordis.patch.yml            bundle 安装时注入的插件行
+```
+
+## 开发与验证
 
 ```sh
 npm test
 npm run check
 ```
 
-## License
+## 路线图
+
+- [x] 文本与推理增量导出
+- [x] 轮次边界与工具围栏
+- [x] 子代理隔离
+- [x] bundle 安装形式
+- [ ] npm 发布
+- [ ] 浏览器端消费示例
+
+## 许可证
 
 MIT
