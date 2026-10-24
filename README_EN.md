@@ -7,6 +7,7 @@
     <img src="https://img.shields.io/badge/node-%3E%3D20.11-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js 20.11+" />
     <img src="https://img.shields.io/badge/DSH-0.2.x-4D6BFE?style=flat-square" alt="DSH 0.2.x" />
     <img src="https://img.shields.io/badge/tests-7%20passed-brightgreen?style=flat-square" alt="7 tests passed" />
+    <a href="https://awesome-dsh-plugin.com/p/ninetyhe-90/dsh-assistant-stream/"><img src="https://img.shields.io/badge/awesome--dsh--plugin-listed-4D6BFE?style=flat-square" alt="Listed on awesome-dsh-plugin" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT License" /></a>
   </p>
 

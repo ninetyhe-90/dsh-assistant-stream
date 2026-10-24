@@ -7,6 +7,7 @@
     <img src="https://img.shields.io/badge/node-%3E%3D20.11-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js 20.11+" />
     <img src="https://img.shields.io/badge/DSH-0.2.x-4D6BFE?style=flat-square" alt="DSH 0.2.x" />
     <img src="https://img.shields.io/badge/tests-7%20passed-brightgreen?style=flat-square" alt="7 tests passed" />
+    <a href="https://awesome-dsh-plugin.com/p/ninetyhe-90/dsh-assistant-stream/"><img src="https://img.shields.io/badge/awesome--dsh--plugin-listed-4D6BFE?style=flat-square" alt="Listed on awesome-dsh-plugin" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT License" /></a>
   </p>
 
@@ -57,18 +58,23 @@ flowchart LR
 
 ## 安装
 
-从 npm 安装：
+已收录于 [awesome-dsh-plugin](https://awesome-dsh-plugin.com/p/ninetyhe-90/dsh-assistant-stream/)。推荐从 GitHub 安装：
 
 ```sh
-dsh plugin --profile <name> add dsh-assistant-stream
+dsh plugin --profile <name> add github:ninetyhe-90/dsh-assistant-stream
 ```
 
-从本地目录或 GitHub 安装：
+首次从 Git 源安装时，pnpm 会拦下仓库的构建脚本，命令以 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` 或 `ERR_PNPM_IGNORED_BUILDS` 中止。dsh 会打印需要放行的密钥，把它加到该 profile 的 `pnpm-workspace.yaml` 的 `allowBuilds` 下，再重跑同一条命令即可。放行构建等于信任该来源，需要固定版本时用 `github:ninetyhe-90/dsh-assistant-stream#<commit-sha>`。
+
+本地开发时直接在仓库根目录安装：
 
 ```sh
 dsh plugin --profile <name> add /path/to/dsh-assistant-stream
-dsh plugin --profile <name> add github:ninetyhe-90/dsh-assistant-stream
 ```
+
+> 尚未发布到 npm。`dsh plugin --profile <name> add dsh-assistant-stream` 目前会 404，等发布后可用。
+
+安装完成后在会话里随便发一句话，stderr 出现以 `ASSISTANT_STREAM_V1 ` 开头的行即表示插件已生效。
 
 ## 配置
 
